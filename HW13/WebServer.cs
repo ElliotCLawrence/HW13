@@ -120,9 +120,17 @@ namespace CS422
             int y = 0;
             int i = 0; //index of streamBuff
             ammountRead += x;
-            string validReq = "GET / HTTP/1.1\r\n"; //I'm using this string to check against the request.
-            string validReqPut = "PUT / HTTP/1.1\r\n";
-            while (x > 0 && y < validReq.Length) //while the ammount read is greater than 0 bytes
+
+            
+            
+            string[] validReq = new string[2];
+            validReq[0] = "GET / HTTP/1.1\r\n";
+            validReq[1] = "PUT / HTTP/1.1\r\n";
+            int maxValids = validReq.Length;
+
+            int currentString = 0;
+
+            while (x > 0 && y < validReq[currentString].Length) //while the ammount read is greater than 0 bytes
             { 
                 if (ammountRead > 2048)
                 {
@@ -148,14 +156,24 @@ namespace CS422
 
                 i = 0;
                 fullRequest += Encoding.Default.GetString(streamBuff);
-                while (i < x && y < validReq.Length)
+
+
+                while (i < x && y < validReq[currentString].Length)
                 {
                     if (y < 5 || y > 5)
                     {//first part 'GET /'
-                        if (Convert.ToChar(streamBuff[i]) != validReq[y])
+                        if (Convert.ToChar(streamBuff[i]) != validReq[currentString][y])
                         { //invalid request
-                            client.Close(); //close stream and return false
-                            return null;
+
+                            i = 0; //start over with different request
+                            y = 0;
+                            currentString++;
+
+                            if (currentString >= maxValids) //if there are no more strings to check against, fail.
+                            {
+                                client.Close(); //close stream and return false
+                                return null;
+                            }
                         }
                         //else
                         y++; //valid
@@ -170,7 +188,7 @@ namespace CS422
                     i++; //increment i
                 }
 
-                if (y < validReq.Length) //only read if you need to.
+                if (y < validReq[currentString].Length) //only read if you need to.
                 {
                     try
                     {
@@ -244,7 +262,7 @@ namespace CS422
             }
 
             string onlyHeaders;
-            onlyHeaders = fullRequest.Substring(validReq.Length-2); //before the \r\n
+            onlyHeaders = fullRequest.Substring(validReq[currentString].Length-2); //before the \r\n
             string endHeaders = "\r\n\r\n";
             int endHeadersCount = 0;
 
