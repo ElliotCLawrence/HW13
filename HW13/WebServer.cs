@@ -23,7 +23,6 @@ namespace CS422
 
         public static bool Start(int portNum, int threadCount)
         {
-
             AddService(new DemoService());
             threadPool = new ThreadPoolRouter(threadCount, portNum);
             threadPool.startWork();
@@ -62,7 +61,7 @@ namespace CS422
             TcpClient client;
             WebRequest request;
 
-            while (true) 
+            while (true)
             {
                 client = threadPool.takeClient(); //constantly try to get a new client
 
@@ -70,7 +69,6 @@ namespace CS422
                     break;
 
                 request = BuildRequest(client); //read from client and build a request
-
 
                 if (request == null) //if not valid, find new client
                 {
@@ -100,17 +98,17 @@ namespace CS422
         {
             NetworkStream clientStream = client.GetStream();
             int ammountRead = 0;
-            clientStream.ReadTimeout = (int) new TimeSpan(0, 0, 2).TotalMilliseconds;
+            clientStream.ReadTimeout = (int)new TimeSpan(0, 0, 2).TotalMilliseconds;
             int startingSeconds = DateTime.Now.Second;
             int startingMinute = DateTime.Now.Minute;
             string fullRequest = "";
             string destination = "/";
-            
+
             byte[] streamBuff = new byte[1024]; //create a buffer for reading
             int x;
             try
             {
-              x  = clientStream.Read(streamBuff, 0, 1024);
+                x = clientStream.Read(streamBuff, 0, 1024);
             }
             catch //if read times out
             {
@@ -122,8 +120,6 @@ namespace CS422
             int i = 0; //index of streamBuff
             ammountRead += x;
 
-            
-            
             string[] validReq = new string[2];
             validReq[0] = "GET / HTTP/1.1\r\n";
             validReq[1] = "PUT / HTTP/1.1\r\n";
@@ -133,7 +129,7 @@ namespace CS422
 
             while (x > 0 && y < validReq[currentString].Length) //while the ammount read is greater than 0 bytes
             {
-                #region timeout
+                #region Timeout Logic
 
                 if (ammountRead > 2048)
                 {
@@ -230,7 +226,7 @@ namespace CS422
                 {
                     break;
                 }
-                
+
                 else
                 {
                     //read more stuff
@@ -244,7 +240,7 @@ namespace CS422
                         client.Close();
                         return null;
                     }
-                    
+
                     ammountRead += x;
                     fullRequest += Encoding.Default.GetString(streamBuff);
 
@@ -272,7 +268,7 @@ namespace CS422
 
             #region ParseHeaders
             string onlyHeaders;
-            onlyHeaders = fullRequest.Substring(validReq[currentString].Length-2); //before the \r\n
+            onlyHeaders = fullRequest.Substring(validReq[currentString].Length - 2); //before the \r\n
             string endHeaders = "\r\n\r\n";
             int endHeadersCount = 0;
 
@@ -289,17 +285,17 @@ namespace CS422
             string[] splitters = new string[1];
             splitters[0] = "\r\n";
 
-            string [] headerArray = headers.Split( splitters, StringSplitOptions.RemoveEmptyEntries);
+            string[] headerArray = headers.Split(splitters, StringSplitOptions.RemoveEmptyEntries);
 
             string[] headerSplitter;
             foreach (string headerCombo in headerArray)
             {
                 headerCombo.Trim();
                 headerSplitter = headerCombo.Split(':');
-                
+
                 if (headerSplitter.Length == 2)
                 {
-                    headerList.Add(new Tuple<string, string>( headerSplitter[0], headerSplitter[1]));
+                    headerList.Add(new Tuple<string, string>(headerSplitter[0], headerSplitter[1]));
                 }
             }
 
@@ -317,14 +313,14 @@ namespace CS422
             else if (currentString == 1)
                 requestType = "PUT";
 
-            
+
             if (z < fullRequest.Length)
             {
-                streamOne.Write( Encoding.ASCII.GetBytes( fullRequest), z, fullRequest.Length - z);
+                streamOne.Write(Encoding.ASCII.GetBytes(fullRequest), z, fullRequest.Length - z);
                 ConcatStream jointStream = new ConcatStream(streamOne, client.GetStream());
-                request = new WebRequest(client, jointStream , headerList, "1.1", requestType, destination); //change "GET" to variable
+                request = new WebRequest(client, jointStream, headerList, "1.1", requestType, destination); //change "GET" to variable
             }
-            
+
             else
             {
                 request = new WebRequest(client, client.GetStream(), headerList, "1.1", requestType, destination); //change "GET" to variable

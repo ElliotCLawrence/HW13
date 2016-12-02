@@ -13,10 +13,13 @@ namespace CS422
     {
         private readonly FileSys422 r_sys;
         private string uriPath;
+        private bool m_allowUploads;
+
         public FilesWebService(FileSys422 fs)
         {
             r_sys = fs;
             uriPath = null;
+            m_allowUploads = true;
         }
 
         public override string ServiceURI
@@ -31,7 +34,7 @@ namespace CS422
         {
             if (req.URI.Length < this.ServiceURI.Length)
                 req.URI = this.ServiceURI;
-           
+
             if (!req.URI.StartsWith(this.ServiceURI))
             {
                 throw new InvalidOperationException();
@@ -42,20 +45,20 @@ namespace CS422
             string[] pieces = req.URI.Substring(ServiceURI.Length).Split('/');  //split up the path by '/' tokens
 
             if (pieces.Length == 1 && pieces[0] == "") //we passed in only the root
-                RespondWithList(r_sys.GetRoot(), req); 
+                RespondWithList(r_sys.GetRoot(), req);
 
 
             for (int x = 0; x < pieces.Length; x++)
             {
                 pieces[x] = decode(pieces[x]);
-                
+
             }
-                
+
 
             Dir422 dir = r_sys.GetRoot(); //grab the root of the filesystem
-            for (int i = 0; i < pieces.Length -1; i++) //go through the parts of the path
+            for (int i = 0; i < pieces.Length - 1; i++) //go through the parts of the path
             {
-                
+
                 dir = dir.getDir(pieces[i]);
                 if (dir == null) //if you encounter a directory that doesn't exist, tell the user that the target they requested is not found and return
                 {
@@ -85,10 +88,53 @@ namespace CS422
             }
         }
 
-        String BuildDirHTML(Dir422 directory) 
+        String BuildDirHTML(Dir422 directory)
         {
 
             var html = new StringBuilder("<html>");
+
+            if (m_allowUploads) {
+                html.AppendLine(
+                @"<script> 
+                function selectedFileChanged(fileInput, urlPrefix) {     
+                    document.getElementById('uploadHdr').innerText = 'Uploading ' + fileInput.files[0].name + '...'; 
+                    
+                    //Need XMLHttpRequest to do the upload     
+                    if (!window.XMLHttpRequest)     {         
+                        alert('Your browser does not support XMLHttpRequest. Please update your browser.');         
+                        return;     
+                    } 
+ 
+                    //Hide the file selection controls while we upload     
+                    var uploadControl = document.getElementById('uploader');     
+                    if (uploadControl)     
+                    {         
+                        uploadControl.style.visibility = 'hidden';     
+                    } 
+ 
+                    // Build a URL for the request     
+                    if (urlPrefix.lastIndexOf('/') != urlPrefix.length - 1)     
+                    {         
+                        urlPrefix += '/';     
+                    } 
+
+                    var uploadURL = urlPrefix + fileInput.files[0].name; 
+ 
+                    //Create the service request object     
+                    var req = new XMLHttpRequest();     
+                    req.open('PUT', uploadURL);
+                    req.onreadystatechange = function(){         
+                        document.getElementById('uploadHdr').innerText = 'Upload (request status == ' + req.status + ')';
+                        // Un-comment the line below and comment-out the line above if you want the page to          
+                        // refresh after the upload         
+                        //location.reload();     
+                    };     
+                    req.send(fileInput.files[0]); 
+                } 
+                </script> "
+                );
+            }
+
             html.AppendLine("<h1>Folders</h1>"); //label the beginning of folders
             foreach (Dir422 dir in directory.GetDirs())
             {
@@ -107,6 +153,16 @@ namespace CS422
                 );
                 html.AppendLine("</br>"); //append new lines for styling
             }
+
+            if (m_allowUploads) //if you can upload, show the upload button and browser
+            {
+                html.AppendFormat(
+                    "<hr><h3 id='uploadHdr'>Upload</h3><br>" +
+                    "<input id=\"uploader\" type='file' " +
+                    "onchange='selectedFileChanged(this,\"{0}\")' /><hr>",
+                    GetHREFFromDir422(directory) //give a reference to this folder
+                    );
+            } //end uploading area
 
             html.AppendLine("</html>");
             return html.ToString();
@@ -136,7 +192,7 @@ namespace CS422
 
 
 
-                req.WriteHTMLResponse(file.OpenReadOnly(), contentType); //write a page as a file
+            req.WriteHTMLResponse(file.OpenReadOnly(), contentType); //write a page as a file
         }
 
         string GetHREFFromFile422(File422 file) //get filepath from file
@@ -145,7 +201,7 @@ namespace CS422
             path = uriPath + '/' + file.Name;
             path = encode(path);
             return path;
-            
+
         }
 
         string GetHREFFromDir422(Dir422 dir) //get filepath from directory
@@ -176,7 +232,7 @@ namespace CS422
 
             decodedString = encodedString.Replace("%20", " "); //replace %20 with space
 
-            return decodedString ;
+            return decodedString;
         }
     }
 }
