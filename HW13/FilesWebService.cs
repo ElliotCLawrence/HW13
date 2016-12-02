@@ -29,6 +29,9 @@ namespace CS422
 
         public override void Handler(WebRequest req)
         {
+            if (req.URI.Length < this.ServiceURI.Length)
+                req.URI = this.ServiceURI;
+           
             if (!req.URI.StartsWith(this.ServiceURI))
             {
                 throw new InvalidOperationException();

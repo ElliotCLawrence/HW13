@@ -24,32 +24,31 @@ namespace CS422
         public static bool Start(int portNum, int threadCount)
         {
 
-            //AddService(new DemoService());
+            AddService(new DemoService());
             threadPool = new ThreadPoolRouter(threadCount, portNum);
             threadPool.startWork();
 
             listenerThreadWorker = new Thread(new ParameterizedThreadStart(listenerThread));
             listenerThreadWorker.Start(portNum);
 
-
             return true;
         }
 
-        public static void listenerThread(object port)
+        public static void listenerThread(object port) //listener thread constantly executes this
         {
             try
             {
-                newListener = new TcpListener(IPAddress.Any, (int)port);
+                newListener = new TcpListener(IPAddress.Any, (int)port); //open a tcp Listener
                 newListener.Start();
                 TcpClient client;
                 while (true)
                 {
-                    client = newListener.AcceptTcpClient();
+                    client = newListener.AcceptTcpClient(); //have listener keep trying to get a new client
 
                     if (client == null)
                         break;
 
-                    threadPool.addClient(client);
+                    threadPool.addClient(client); //if not null, send the client to the threadpool
                 }
             }
             catch
@@ -63,33 +62,35 @@ namespace CS422
             TcpClient client;
             WebRequest request;
 
-            while (true)
+            while (true) 
             {
-                client = threadPool.takeClient();
+                client = threadPool.takeClient(); //constantly try to get a new client
 
                 if (client == null) //if null client break this thread
                     break;
 
-                request = BuildRequest(client);
+                request = BuildRequest(client); //read from client and build a request
 
 
-                if (request == null)
+                if (request == null) //if not valid, find new client
                 {
                     continue;
                 }
 
                 bool found = false;
-                foreach (WebService services in webServices)
+                foreach (WebService services in webServices) //try to find a valid service request
                 {
-                    if ((request.URI.Split('/'))[1] == (services.ServiceURI.Split('/'))[1]) //FIX THIS
+                    if ((request.URI.Split('/'))[1] == (services.ServiceURI.Split('/'))[1]) //*make sure this isn't out of range
+                                                                                            //grabs first word after request. if request was
+                                                                                            //GET /files /.... this would return 'files'
                     {
-                        services.Handler(request);
+                        services.Handler(request); //call the handler for this request
                         found = true;
                         break;
                     }
                 }
 
-                if (!found)
+                if (!found) //if you don't find it, send 404 to user
                     request.WriteNotFoundResponse("404 Page Not Found");
             }
         }
@@ -131,7 +132,9 @@ namespace CS422
             int currentString = 0;
 
             while (x > 0 && y < validReq[currentString].Length) //while the ammount read is greater than 0 bytes
-            { 
+            {
+                #region timeout
+
                 if (ammountRead > 2048)
                 {
                     clientStream.Close();
@@ -154,12 +157,14 @@ namespace CS422
                     return null;
                 }
 
+                #endregion
+
                 i = 0;
                 fullRequest += Encoding.Default.GetString(streamBuff);
 
-
                 while (i < x && y < validReq[currentString].Length)
                 {
+                    #region Parsing Request                    
                     if (y < 5 || y > 5)
                     {//first part 'GET /'
                         if (Convert.ToChar(streamBuff[i]) != validReq[currentString][y])
@@ -186,7 +191,10 @@ namespace CS422
                             destination += Convert.ToChar(streamBuff[i]);
                     }
                     i++; //increment i
+                    #endregion
                 }
+
+                //If we don't have enough characters to fully match a valid request yet, we need to read more bytes to verify it's a valid request
 
                 if (y < validReq[currentString].Length) //only read if you need to.
                 {
@@ -207,6 +215,7 @@ namespace CS422
                     break;
             }
 
+            #region Header Logic
             //read in the headers
             while (true)
             {
@@ -236,7 +245,6 @@ namespace CS422
                         return null;
                     }
                     
-
                     ammountRead += x;
                     fullRequest += Encoding.Default.GetString(streamBuff);
 
@@ -260,7 +268,9 @@ namespace CS422
                 if (x <= 0)
                     return null; //never had headers, nor a second \r\n. invalid request!
             }
+            #endregion
 
+            #region ParseHeaders
             string onlyHeaders;
             onlyHeaders = fullRequest.Substring(validReq[currentString].Length-2); //before the \r\n
             string endHeaders = "\r\n\r\n";
@@ -291,32 +301,43 @@ namespace CS422
                 {
                     headerList.Add(new Tuple<string, string>( headerSplitter[0], headerSplitter[1]));
                 }
-                
             }
 
+            #endregion
+
+            #region populateURI
             //populate from fullRequest string the URI, Method, version, etc future HW
             MemoryStream streamOne = new MemoryStream();
             WebRequest request;
             int z = endHeadersCount + 4; //right after the last \r\n\r\n
+            string requestType = "";
+
+            if (currentString == 0)
+                requestType = "GET";
+            else if (currentString == 1)
+                requestType = "PUT";
+
             
             if (z < fullRequest.Length)
             {
                 streamOne.Write( Encoding.ASCII.GetBytes( fullRequest), z, fullRequest.Length - z);
                 ConcatStream jointStream = new ConcatStream(streamOne, client.GetStream());
-                request = new WebRequest(client, jointStream , headerList, "1.1", "GET", destination); //PLACE HOLDER LINE
+                request = new WebRequest(client, jointStream , headerList, "1.1", requestType, destination); //change "GET" to variable
             }
             
             else
             {
-                request = new WebRequest(client, client.GetStream(), headerList, "1.1", "GET", destination); //PLACE HOLDER LINE
+                request = new WebRequest(client, client.GetStream(), headerList, "1.1", requestType, destination); //change "GET" to variable
             }
+
+            #endregion
+
             return request;
         }
 
         public static void AddService(WebService service)
         {
             webServices.Add(service);
-
         }
 
         public static void Stop()
