@@ -121,7 +121,7 @@ namespace CS422
             int i = 0; //index of streamBuff
             ammountRead += x;
             string validReq = "GET / HTTP/1.1\r\n"; //I'm using this string to check against the request.
-
+            string validReqPut = "PUT / HTTP/1.1\r\n";
             while (x > 0 && y < validReq.Length) //while the ammount read is greater than 0 bytes
             { 
                 if (ammountRead > 2048)

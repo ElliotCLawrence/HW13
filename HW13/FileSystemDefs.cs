@@ -37,9 +37,6 @@ namespace CS422
         public abstract File422 CreateFile(string name);
 
         public abstract Dir422 CreateDir(string name);
-
-
-
     }
 
     public abstract class File422
@@ -120,7 +117,6 @@ namespace CS422
             {
                 return false;
             }
-
 
             foreach (string dir in Directory.GetDirectories(m_path)) 
             {
@@ -213,7 +209,6 @@ namespace CS422
                 if (file == fullName || file == windowsName)
                     return new StdFSFile(fullName);
             }
-
             return null;
         }
 
@@ -397,7 +392,6 @@ namespace CS422
                 if (fileChildren[x].Name == name)
                     return fileChildren[x];
             }
-
             return null;
         }
 

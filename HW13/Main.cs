@@ -50,7 +50,7 @@ namespace CS422
 
             WebServer.Start(1337, 64);
 
-            WebService service = new FilesWebService(StandardFileSystem.Create("/Users/Elliot/Desktop"));
+            WebService service = new FilesWebService(StandardFileSystem.Create("/Users/ellio/desktop"));
             WebServer.AddService(service);
         }
     }
