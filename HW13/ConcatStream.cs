@@ -162,10 +162,17 @@ namespace CS422
 
             if (streamPosition > firstStream.Length) //if we need to read in the second stream
             {
-                int newPosition = (int)(streamPosition - firstStream.Length); //calculate the appropriate position in the second stream
-                int readVal = secondStream.Read(buffer, offset, count); //hold on to the ammount read in
-                streamPosition += readVal; //increment the position by ammount read in
-                return readVal; //return ammount read
+                try
+                {
+                    int newPosition = (int)(streamPosition - firstStream.Length); //calculate the appropriate position in the second stream
+                    int readVal = secondStream.Read(buffer, offset, count); //hold on to the ammount read in
+                    streamPosition += readVal; //increment the position by ammount read in
+                    return readVal; //return ammount read
+                }
+                catch
+                {
+                    return 0;
+                }
             }
 
             //we're reading from both streams
