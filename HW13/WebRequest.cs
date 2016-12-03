@@ -73,6 +73,22 @@ namespace CS422
             return true;
         }
 
+        public bool WriteInvalidUpload(string htmlString)
+        {
+            string responseString = "HTTP/1.1 400 Bad Request\r\n\r\n";
+            byte[] responseBytes = Encoding.ASCII.GetBytes(responseString);
+            try
+            {
+                netStream.Write(responseBytes, 0, responseBytes.Length); //write the status line 
+            }
+            catch
+            {
+
+            }
+            netStream.Dispose();
+            return true;
+        }
+
         private Tuple<string,string> getRangeHeader()
         {
             

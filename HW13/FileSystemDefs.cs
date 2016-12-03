@@ -78,8 +78,11 @@ namespace CS422
             return root;
         }
 
+        public static string rootPath;
+
         public static StandardFileSystem Create(string rootDir)
         {
+            rootPath = rootDir;
             root = new StdFSDir(rootDir);
             return new StandardFileSystem();
         }
@@ -87,7 +90,7 @@ namespace CS422
 
     public class StdFSDir : Dir422
     {
-        private string m_path;       
+        public string m_path;       
         
 
         public StdFSDir(string path)
@@ -225,7 +228,7 @@ namespace CS422
 
     public class StdFSFile : File422
     {
-        private string m_path;
+        public string m_path;
 
         public StdFSFile(string path) { m_path = path; }
         

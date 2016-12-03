@@ -178,15 +178,23 @@ namespace CS422
             //we're reading from both streams
             else if (streamPosition + count > firstStream.Length) //if this is true, we must read from stream one, and then some more from stream 2
             {
-                int firstRead = (int) (firstStream.Length - streamPosition); //calculate how many bytes left in stream one to read.
-                int bytesRead = firstStream.Read(buffer, offset, firstRead); //read to the end of stream one.
-                count -= bytesRead;  //decrement count, offset, and streamposition
-                offset += bytesRead;
-                streamPosition += bytesRead;
+                try
+                {
+                    int firstRead = (int)(firstStream.Length - streamPosition); //calculate how many bytes left in stream one to read.
+                    int bytesRead = firstStream.Read(buffer, offset, firstRead); //read to the end of stream one.
+                    count -= bytesRead;  //decrement count, offset, and streamposition
+                    offset += bytesRead;
+                    streamPosition += bytesRead;
 
-                int secondBytesRead = secondStream.Read(buffer, offset, count); //read from stream two
-                streamPosition += secondBytesRead; //increment streamPosition
-                return bytesRead + secondBytesRead; //return total bytes read
+                    int secondBytesRead = secondStream.Read(buffer, offset, count); //read from stream two
+                    streamPosition += secondBytesRead; //increment streamPosition
+                    return bytesRead + secondBytesRead; //return total bytes read
+                }
+                catch
+                {
+                    return 0;
+                }
+                
             }
 
             else //only reading from the first stream

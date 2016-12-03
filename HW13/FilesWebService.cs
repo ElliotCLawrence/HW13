@@ -32,6 +32,7 @@ namespace CS422
 
         public override void Handler(WebRequest req)
         {
+
             if (req.URI.Length < this.ServiceURI.Length)
                 req.URI = this.ServiceURI;
 
@@ -39,8 +40,9 @@ namespace CS422
             {
                 throw new InvalidOperationException();
             }
-            
-            
+
+
+
 
             uriPath = req.URI;
 
@@ -58,6 +60,91 @@ namespace CS422
 
 
             Dir422 dir = r_sys.GetRoot(); //grab the root of the filesystem
+
+            if (req.httpMethod == "PUT") //if the method is put.
+            {
+
+                foreach (Tuple<string, string> header in req.headers)
+                {
+                    if (header.Item1 == "Content-Length")
+                    {
+                        if (Convert.ToInt64(header.Item2) <= 0)
+                        {
+                            req.WriteInvalidUpload("400");
+                            return;
+                        }
+                    }
+                       
+                }
+                
+
+                for (int i = 0; i < pieces.Length - 1; i++) //go through the parts of the path
+                {
+                    dir = dir.getDir(pieces[i]);
+                    if (dir == null) //if you encounter a directory that doesn't exist, tell the user that the target they requested is not found and return
+                    {
+                        req.WriteNotFoundResponse("File not found.\n");
+                        return;
+                    }
+                }
+
+                
+
+                
+
+                File422 fileToCreate = dir.GetFile(pieces[pieces.Length - 1]); //grab the last file of the path
+                if (fileToCreate == null)
+                {
+
+                    string pathName = StandardFileSystem.rootPath;
+
+                    for (int i = 0; i < pieces.Length; i++)
+                    {
+                        
+                        pathName += "/";
+                        pathName += pieces[i];
+                    }
+
+                    FileStream fs = new FileStream(pathName, FileMode.Create, FileAccess.ReadWrite);
+
+
+                    int x = 0;
+                    byte[] bodyBytes = new byte[4096];
+                    string bodyContent = "";
+
+                    x = req.bodyStream.Read(bodyBytes, 0, 4096);
+                    fs.Write(bodyBytes, 0, 4096);
+
+                    while (x > 0)
+                    {
+                        bodyContent += Encoding.ASCII.GetString(bodyBytes);
+                        x = req.bodyStream.Read(bodyBytes, 0, 4096);
+                        fs.Write(bodyBytes, 0, 4096);
+                    }
+
+
+                    
+
+                    
+                    
+
+
+                    
+                    fs.Close();
+
+                    req.WriteHTMLResponse("200 OK");
+                }
+
+                else
+                {
+                    req.WriteInvalidUpload("File already exists");
+                }
+
+
+                return;
+            }
+
+
             for (int i = 0; i < pieces.Length - 1; i++) //go through the parts of the path
             {
 
@@ -71,45 +158,6 @@ namespace CS422
 
             //we now have the directory of one above the file / directory
 
-
-            if (req.httpMethod == "PUT") //if the method is put.
-            {
-                int x = 0;
-                byte[] bodyBytes = new byte[4096];
-                string bodyContent = "";
-
-                x = req.bodyStream.Read(bodyBytes, 0, 4096);
-
-                while (x > 0)
-                {
-                    bodyContent += Encoding.ASCII.GetString(bodyBytes);
-                    x = req.bodyStream.Read(bodyBytes, 0, 4096);
-                }
-
-                if (bodyContent.Length == 0)
-                {
-                    req.WriteNotFoundResponse("No data in the specified file");
-                    return;
-                }
-
-                File422 fileToCreate = dir.GetFile(pieces[pieces.Length - 1]); //grab the last file of the path
-                if (fileToCreate == null)
-                {
-                    File422 newFile = dir.CreateFile(pieces[pieces.Length - 1]);
-                    FileStream fs = (FileStream) newFile.OpenReadWrite();
-
-                    fs.Write(Encoding.ASCII.GetBytes(bodyContent), 0, Encoding.ASCII.GetBytes(bodyContent).Length);
-                    req.WriteHTMLResponse("200 OK");
-                }
-
-                else
-                {
-                    req.WriteHTMLResponse("File already exists");
-                }
-
-                
-                return;
-            }
 
 
 
@@ -207,7 +255,7 @@ namespace CS422
                     "<hr><h3 id='uploadHdr'>Upload</h3><br>" +
                     "<input id=\"uploader\" type='file' " +
                     "onchange='selectedFileChanged(this,\"{0}\")' /><hr>",
-                    GetHREFFromDir422(directory) //give a reference to this folder
+                    uriPath //give a reference to this folder
                     );
             } //end uploading area
 
@@ -245,7 +293,10 @@ namespace CS422
         string GetHREFFromFile422(File422 file) //get filepath from file
         {
             string path = ""; //path string
-            path = uriPath + '/' + file.Name;
+            if (!uriPath.EndsWith("/")) //if you're not in root
+                path = uriPath + '/' + file.Name;
+            else
+                path = uriPath + file.Name;
             path = encode(path);
             return path;
 
@@ -255,6 +306,7 @@ namespace CS422
         {
             string path = ""; //path string
 
+            
             if (!uriPath.EndsWith("/")) //if you're not in root
                 path = uriPath + '/' + dir.Name;
             else //if you're in root

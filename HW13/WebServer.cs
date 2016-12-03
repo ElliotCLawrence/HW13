@@ -108,6 +108,7 @@ namespace CS422
             int x;
             try
             {
+
                 x = clientStream.Read(streamBuff, 0, 1024);
             }
             catch //if read times out
